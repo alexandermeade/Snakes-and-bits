@@ -1,0 +1,8 @@
+[package]
+name = "snake_and_bits"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = "2.1.0"
+crossterm = "0.28.1"

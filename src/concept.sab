@@ -1,0 +1,25 @@
+
+
+%% [input1_cpy, input2]
+                   ^
+
+%% this program starts at S then moves to the right continuously hitting the 
+%% , comamnd which takes in an input and stores it as a integer then hits th
+
+%% command breakdown
+%% S start point
+%% C copys the currently indexed value and pushes it to the stack as a copy
+%% < moves pointer to the left
+%% P pops value from the stack at the curr index
+%% , retrieves input from the user
+%% ? compares the two top values on the stack and runs flags on them (==, !=, ect..)
+%% |expr| this checks the given flag and if it's true then it will conintue the code to the right
+%% ' prints curr pointed value to the screen
+
+S , C < P , ? ~ 
+              ~
+              ~
+              |==| ~ '
+              ~
+              "not equal"
+
