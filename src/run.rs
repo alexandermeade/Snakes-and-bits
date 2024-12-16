@@ -6,15 +6,31 @@ use colored::Colorize;
 use colored::ColoredString;
 use std::io::{stdout, Write};
 
-use crossterm::{terminal::{ClearType, Clear}, QueueableCommand, cursor::{MoveTo, Hide}};
-
-pub fn clear_screen() {
-    let mut out = stdout();
+use crossterm::cursor;
+use crossterm::terminal;
+use crossterm::{
+    execute,
+    terminal::{Clear, ClearType},
+    cursor::MoveTo,
+    ExecutableCommand,
+};
+use std::io;
+//pub fn clear_screen() {
+/*    let mut out = stdout();
     out.queue(Hide).unwrap();
     out.queue(Clear(ClearType::All)).unwrap();
     out.queue(MoveTo(0, 0)).unwrap();
     out.flush().unwrap();
-} 
+*/
+
+fn clear_terminal() {
+}
+fn clear_screen() {
+    execute!(io::stdout(), terminal::Clear(terminal::ClearType::All), cursor::MoveTo(0, 0)).unwrap(); 
+    io::stdout().flush().unwrap();
+}
+
+
 
 pub struct Executer {
     contents: String,
@@ -31,7 +47,9 @@ pub struct Executer {
     gt_flag:bool,
     lteq_flag:bool,
     gteq_flag:bool,
-    not_flag:bool
+    not_flag:bool,
+    tick_count:i32,
+    output_height:u32
 }
 
 impl Executer {
@@ -51,7 +69,7 @@ impl Executer {
         }
     }
 
-    pub fn start(board: Vec<Vec<Token>>, contents:String) {
+    pub fn start(board: Vec<Vec<Token>>, contents:String, output_height:u32) {
         let mut exec = Executer {
             contents,
             board,
@@ -67,10 +85,15 @@ impl Executer {
             gt_flag:false,
             lteq_flag:false,
             gteq_flag:false,
-            not_flag:false
+            not_flag:false,
+            tick_count: 0,
+            output_height
         };
         exec.find_start();
+        clear_screen();
         exec.run();
+
+
     }
 
     fn stack_get_next(&self) -> Option<i32> {
@@ -165,14 +188,15 @@ impl Executer {
         println!("{} {}", "!".red().bold(), msg.to_string().red().bold());
     }
     fn print_curr(&self) {
-        println!("exec > {:#?}", self.curr_token); 
+        //println!("exec > {:#?}", self.curr_token); 
     }
 
     fn run(&mut self) {
         while !self.stop_running {
-            clear_screen();
+
             self.fancy_file_pos_2();
-            thread::sleep(Duration::from_millis(100)); 
+            thread::sleep(Duration::from_millis(25)); 
+
             match self.curr_token.token_type() {
                 TokenType::Start => {
                     //self.print_curr();
@@ -184,6 +208,7 @@ impl Executer {
                 },
 
                 TokenType::Input => {
+
                     let mut line = String::new();
                     println!("{}", "(Input)".black().bold().on_cyan());
                     let b1 = std::io::stdin().read_line(&mut line).unwrap();  
@@ -192,15 +217,19 @@ impl Executer {
                         Some(c) => self.stack.push(c as i32),
                         None => self.print_err("no characters inputed")
                     }
+
                     self.get_next();
                 },
                 TokenType::NumInput => {
+
+                    let mut line = String::new();
                     let mut line = String::new();
                     println!("{}", "(Input)".black().bold().on_cyan());
                     let b1 = std::io::stdin().read_line(&mut line).unwrap();  
                     self.outputs.push(format!("{}", line));
                     println!("{}", line);
                     self.stack.push(line.trim().parse().expect("invalid input"));
+
                     self.get_next();
                 },
                 TokenType::CopyCmd => {
@@ -411,6 +440,7 @@ impl Executer {
                 }
             }
         }
+        clear_screen();
     }
 
     fn populate_spaces(colmn_count:i32) -> String {
@@ -429,15 +459,29 @@ impl Executer {
         return "false".red().bold();
     }
 
-    fn fancy_file_pos_2(&self) {
+    fn fancy_file_pos_2(&mut self) {
         let mut index:usize = 0;
         let mut c = self.contents.chars().nth(index).unwrap();
         let mut line = 1;
         let mut colmn = 0;
         let mut output = String::from("");
+        let size = terminal::size().unwrap();
+        if self.tick_count > 0 {
+            execute!(io::stdout(), cursor::MoveUp(self.output_height as u16 + size.1), terminal::Clear(terminal::ClearType::CurrentLine)).unwrap();
+        }
+
+        self.tick_count += 1;
+
+        // Move the cursor to the top of the terminal (row 1, column 1)
+        print!("\x1B[H");  // ANSI escape code to move cursor to top-left corner
+    
+        // Print content for this frame
+        println!("Frame {}: This is a new section.", self.tick_count);
+    
+        io::stdout().flush().unwrap();
+    
         // printing Flags
-        println!( "{}",
-            &format!("\n== [{}], != [{}], < [{}], > [{}], <= [{}], >= [{}], ! [{}]\n", 
+        output.push_str(&format!("\n== [{}], != [{}], < [{}], > [{}], <= [{}], >= [{}], ! [{}]\n", 
                 Self::fancy_bool(self.eq_flag), 
                 Self::fancy_bool(self.neq_flag), 
                 Self::fancy_bool(self.lt_flag), 
@@ -449,13 +493,18 @@ impl Executer {
         );
 
         //printing stack 
-        print!("{}", format!("\n{}\n[", "(Stack)".black().bold().on_cyan()));
-        for i in 0..self.stack.len() {
+        let stack_top = if self.stack_index as i32 - 10 < 0 {0} else {self.stack_index - 10};
+
+        let offset = self.stack.len()-self.stack_index;
+        let stack_bottom = if offset > 10 {offset/10 * offset%10} else {self.stack.len()};
+
+        output.push_str(&format!("\n{}\n[{}", "(Stack)".black().bold().on_cyan(), if stack_top == 0 {""} else {"..., "}));
+        for i in stack_top..stack_bottom {
             if i == self.stack_index {
-                print!("{}", format!(" {},", self.stack[i].to_string().cyan().bold()));
+                output.push_str(&format!(" {},", self.stack[i].to_string().cyan().bold()));
                 continue;
             }
-            print!("{}", format!(" {},", self.stack[i].to_string()));
+            output.push_str(&format!(" {},", self.stack[i].to_string()));
         }
   //      output.push_str(&format!("]\n"));
 
@@ -463,35 +512,35 @@ impl Executer {
         while c != '\0' {
             colmn += 1;
             let res = match c { 
-                'S' => format!("{}", "S".green().bold()),
+                'S' => "S".green().bold(),
                 // stack related commands
-                '>' => format!("{}", ">".yellow().bold()),
-                '<' => format!("{}", "<".yellow().bold()),
-                ',' => format!("{}", ",".yellow().bold()),
+                '>' => ">".yellow().bold(),
+                '<' => "<".yellow().bold(),
+                ',' => ",".yellow().bold(),
                 //alphanumeric commands
-                'P' => format!("{}", "P".bold()),
-                'C' => format!("{}", "C".bold()),
-                'W' => format!("{}", "W".bold()),
-                '#' => format!("{}", "#".yellow().bold()),
-                '~' => format!("{}", "~".blue().bold()),
-                '@' => format!("{}", "@".red().bold()),
-                '+' => format!("{}", "+".yellow().bold()),
-                '-' => format!("{}", "-".yellow().bold()),
-                'i' => format!("{}", "i".yellow().bold()),
-                'd' => format!("{}", "d".yellow().bold()),
-                '0' => format!("{}", "0".blue().bold()),
-                ',' => format!("{}", ",".green().bold()),
-                ' ' => format!(" "),
+                'P' => "P".bold(),
+                'C' => "C".bold(),
+                'W' => "W".bold(),
+                '#' => "#".yellow().bold(),
+                '~' => "~".blue().bold(),
+                '@' => "@".red().bold(),
+                '+' => "+".yellow().bold(),
+                '-' => "-".yellow().bold(),
+                'i' => "i".yellow().bold(),
+                'd' => "d".yellow().bold(),
+                '0' => "0".blue().bold(),
+                ',' => ",".green().bold(),
+                ' ' => " ".normal(),
 
                 '\t' => {
                     colmn += 4;
-                    format!("    ")
+                    "    ".normal()
                 },
             
                 '\n' => {
                     colmn = 1;
                     line += 1;
-                    format!("\n")
+                    "\n".normal()
                 },
                 '"' => {
                     let start = index;
@@ -505,21 +554,21 @@ impl Executer {
                     }
                     index += 1;
 
-                    let inner = format!("{}", self.contents[start as usize..index as usize].to_string().green().bold());
+                    let inner = self.contents[start as usize..index as usize].to_string().green().bold();
                     colmn += 1;
                     index -=1;
                     inner
              
                 }
                 //computational
-                '?' => format!("{}", "?".blue().bold()),
+                '?' => "?".blue().bold(),
                 '\0' => return,
-                _ => format!("{}", c)
+                _ => format!("{}", c).normal()
             };  
             if self.curr_token.line() == line && self.curr_token.colmn() == colmn-1 { 
-                print!("{}", format!("{}", res.on_cyan()));
+                output.push_str(&format!("{}", res.on_cyan()));
             }else {
-                print!("{}", format!("{}", res));
+                output.push_str(&res);
             }
             index += 1;
             match self.contents.chars().nth(index) {
@@ -528,11 +577,23 @@ impl Executer {
             };
         }
         //printing output
-        println!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan());
+         
+        let top = if self.outputs.len() % 10 == 0 {self.outputs.len()/10 * self.outputs.len() % 10} else {0};
+        
+        output.push_str(&
+            if top == 0 {
+                format!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan())
+            }else {
 
-        for out in &self.outputs {
-            println!("{} {}", String::from("~").green().bold(), out)
+                format!("{}{}\n(...{} additional outputs)", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan(), top.to_string().green().bold())
+            }
+        );
+        
+         
+        for out in top..self.outputs.len() {
+            output.push_str(&format!("\n{} {}", String::from("~").green().bold(), self.outputs[out]));
         }
+        print!("{}", output);
     }
 
     fn fancy_file_pos(&self) {
@@ -611,7 +672,7 @@ impl Executer {
                 }else {
                     print!("{}", format!("{}{}", spaces, res));
                 }
-
+                
                 match self.contents.chars().nth(index) {
                     Some(ch) => c=ch,
                     None => { 
@@ -623,8 +684,8 @@ impl Executer {
         }
 
         println!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan());
-
-        for output in &self.outputs {
+        let top = if self.outputs.len() > 25 {(25%2) * 25} else {0};
+        for output in top..self.outputs.len() {
             println!("{} {}", String::from("~").green().bold(), output)
         }
     }

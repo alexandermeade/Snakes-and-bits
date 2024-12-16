@@ -6,6 +6,8 @@ mod lexer;
 mod token;
 mod run;
 
+//silly little tst
+
 fn fancy_file(contents:&String) {
     let mut index:usize = 0;
     let mut c = contents.chars().nth(index).unwrap();
@@ -63,9 +65,10 @@ fn main() {
         .expect("unable to read file");
     
     let toks:Vec<Vec<token::Token>> = lexer::Lexer::start(&contents);
-
-    run::Executer::start(toks, contents); 
-    
+    let height:u32 = lexer::Lexer::height(&contents);
+ //   println!("{height}\n\n\n\n\n\n")
+    run::Executer::start(toks, contents, height); 
+        
 
     //println!("{}", contents);
 }

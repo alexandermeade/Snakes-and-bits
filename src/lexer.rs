@@ -9,11 +9,20 @@ pub struct Lexer {
     curr_char: char,
     line: u32,
     colmn: u32,
-    index:usize
+    index:usize,
 }
 
 impl Lexer {
-    
+
+    pub fn height(content:&str) -> u32 {
+        let mut height_count = 1;
+        for c in String::from(content).chars() {
+            if c == '\n' {
+                height_count += 1;
+            }
+        }
+        height_count
+    }
     fn next(&mut self) {
         if self.index + 1 >= self.content.len().try_into().unwrap() {
             self.curr_char = '\0';
