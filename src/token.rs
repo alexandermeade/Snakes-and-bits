@@ -50,17 +50,19 @@ pub struct Token {
     colmn:u32,
     line:u32,
     colmn_end:u32,
-    line_end:u32
+    line_end:u32,
+    index: usize
 }
 
 impl Token {
-    pub fn new(token_type:TokenType, colmn:u32, line:u32) -> Token {
+    pub fn new(token_type:TokenType, colmn:u32, line:u32, index:usize) -> Token {
         Token {
             token_type,
             colmn,
             line,
             colmn_end: 0,
-            line_end: 0
+            line_end: 0,
+            index,
         }
     }
     
@@ -82,7 +84,11 @@ impl Token {
     
     pub fn colmn(&self) -> u32{
         return self.colmn;
-    } 
+    }
+
+    pub fn index(&self) -> usize {
+        return self.index;
+    }
 
     pub fn line_end(&self) -> u32{
         return self.line_end;

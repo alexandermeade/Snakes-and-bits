@@ -2,38 +2,9 @@
 
 
 
-
-
-
-                                               ~\
-                                              ~\#
-                                             ~\ #
-                                            ~\  #
-                                           ~\   #
-                                          ~\    #
-                                         ~\     #
-                                        ~\      #
-                                       ~\       #                                                                                                             
-                                      ~\        #
-S "set number of bottles of beer" _C ~\         #                                                                                                            
-                                     ~\         #                                                                                                             
-                                    ~\          # 
-                                   ~\           #
-                                  ~\            #
-                                 ~\             #
-                                ~\              #
-                               ~\               #
-                              .$ "btls br " ~   #
-                                           ~\   #                                                                                                                   
-                                          ~\    #
-                                         ~\     #
-                                        ~\      #
-                                       ~\       #
-                                      ~\        #                                                                              \ 
-                                     ~\                                                                                        #
-                                     $ "bottles of beer" "get one down bring it around" d $ "bottles of beer on the wall" ?    !
-                                                                                                                               . "ending program" @
-                                                                                                                                                             
+                            ~                                                                                                                                         \
+S "set number of beers" _ 0 . $ " bottles of beers on the wall" $ " bottles of beers on the wall" "take one down pass it around" $ " bottoles of beer on the wall" d ?!
+                                                                                                                                                                      . @   
                                                                                                                                                         
 
 

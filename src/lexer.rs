@@ -54,7 +54,7 @@ impl Lexer {
         while self.curr_char != '"' {
             if self.curr_char == '\0' {
                 self.index = start + 1;
-                return Token::new(TokenType::FailedDelimiter('"'), self.colmn, self.line) 
+                return Token::new(TokenType::FailedDelimiter('"'), self.colmn, self.line, self.index) 
             }
             if self.curr_char == '\\' {
                 self.next(); //skip the \
@@ -64,51 +64,51 @@ impl Lexer {
             self.next();
         }
 
-        Token::new(TokenType::Str(self.content[start..self.index].to_string()), start_colmn, self.line)
+        Token::new(TokenType::Str(self.content[start..self.index].to_string()), start_colmn, self.line, self.index)
     }
     fn lex(&mut self) -> Token {
         match self.curr_char {
-            'S' => Token::new(TokenType::Start, self.colmn, self.line),
+            'S' => Token::new(TokenType::Start, self.colmn, self.line, self.index),
             ' ' | '\t'=> {
                 self.next();
                 self.lex()
             },
-            '\n' => Token::new(TokenType::NewLine, self.colmn, self.line),
+            '\n' => Token::new(TokenType::NewLine, self.colmn, self.line, self.index),
             '"' => {
                 self.parse_str()
             },
-            '@' => Token::new(TokenType::Stop, self.colmn, self.line),
-            '#' => Token::new(TokenType::Ladder, self.colmn, self.line),
-            '~' => Token::new(TokenType::Snake, self.colmn, self.line),
-            '<' => Token::new(TokenType::LeftShift, self.colmn, self.line),
-            '>' => Token::new(TokenType::RightShift, self.colmn, self.line),
-            '0' => Token::new(TokenType::Zero, self.colmn, self.line),
-            '\0' => Token::new(TokenType::EOF, self.colmn, self.line),
-            '+' => Token::new(TokenType::Add, self.colmn, self.line),
-            '-' => Token::new(TokenType::Sub, self.colmn, self.line),
-            'i' => Token::new(TokenType::Inc, self.colmn, self.line),
-            'd' => Token::new(TokenType::Dec, self.colmn, self.line),
-            '[' => Token::new(TokenType::Front, self.colmn, self.line),
-            ']' => Token::new(TokenType::Back, self.colmn, self.line),
-            '.' => Token::new(TokenType::Step, self.colmn, self.line),
-            '$' => Token::new(TokenType::PrintCell, self.colmn, self.line),
-            ',' => Token::new(TokenType::Input, self.colmn, self.line),
-            '?' => Token::new(TokenType::Compare, self.colmn, self.line),
-            'l' => Token::new(TokenType::LessThan, self.colmn, self.line),
-            'L' => Token::new(TokenType::LessThanEqualTo, self.colmn, self.line),
-            'g' => Token::new(TokenType::GreaterThan, self.colmn, self.line),
-            'G' => Token::new(TokenType::GreaterThanEqualTo, self.colmn, self.line),
-            '=' => Token::new(TokenType::EqualTo, self.colmn, self.line),
-            '!' => Token::new(TokenType::NotEqualTo, self.colmn, self.line),
-            '_' => Token::new(TokenType::NumInput, self.colmn, self.line),
-            'W' => Token::new(TokenType::WipeCmd, self.colmn, self.line),
-            'C' => Token::new(TokenType::CopyCmd, self.colmn, self.line),
-            'P' => Token::new(TokenType::PopCmd, self.colmn, self.line),
-            '/' => Token::new(TokenType::Div, self.colmn, self.line),
-            '*' => Token::new(TokenType::Mult, self.colmn, self.line),
-            '%' => Token::new(TokenType::Mod, self.colmn, self.line),
-            '\\' => Token::new(TokenType::LeftPan, self.colmn, self.line),
-            _ => Token::new(TokenType::NA(self.curr_char), self.colmn, self.line)
+            '@' => Token::new(TokenType::Stop, self.colmn, self.line, self.index),
+            '#' => Token::new(TokenType::Ladder, self.colmn, self.line, self.index),
+            '~' => Token::new(TokenType::Snake, self.colmn, self.line, self.index),
+            '<' => Token::new(TokenType::LeftShift, self.colmn, self.line, self.index),
+            '>' => Token::new(TokenType::RightShift, self.colmn, self.line, self.index),
+            '0' => Token::new(TokenType::Zero, self.colmn, self.line, self.index),
+            '\0' => Token::new(TokenType::EOF, self.colmn, self.line, self.index),
+            '+' => Token::new(TokenType::Add, self.colmn, self.line, self.index),
+            '-' => Token::new(TokenType::Sub, self.colmn, self.line, self.index),
+            'i' => Token::new(TokenType::Inc, self.colmn, self.line, self.index),
+            'd' => Token::new(TokenType::Dec, self.colmn, self.line, self.index),
+            '[' => Token::new(TokenType::Front, self.colmn, self.line, self.index),
+            ']' => Token::new(TokenType::Back, self.colmn, self.line, self.index),
+            '.' => Token::new(TokenType::Step, self.colmn, self.line, self.index),
+            '$' => Token::new(TokenType::PrintCell, self.colmn, self.line, self.index),
+            ',' => Token::new(TokenType::Input, self.colmn, self.line, self.index),
+            '?' => Token::new(TokenType::Compare, self.colmn, self.line, self.index),
+            'l' => Token::new(TokenType::LessThan, self.colmn, self.line, self.index),
+            'L' => Token::new(TokenType::LessThanEqualTo, self.colmn, self.line, self.index),
+            'g' => Token::new(TokenType::GreaterThan, self.colmn, self.line, self.index),
+            'G' => Token::new(TokenType::GreaterThanEqualTo, self.colmn, self.line, self.index),
+            '=' => Token::new(TokenType::EqualTo, self.colmn, self.line, self.index),
+            '!' => Token::new(TokenType::NotEqualTo, self.colmn, self.line, self.index),
+            '_' => Token::new(TokenType::NumInput, self.colmn, self.line, self.index),
+            'W' => Token::new(TokenType::WipeCmd, self.colmn, self.line, self.index),
+            'C' => Token::new(TokenType::CopyCmd, self.colmn, self.line, self.index),
+            'P' => Token::new(TokenType::PopCmd, self.colmn, self.line, self.index),
+            '/' => Token::new(TokenType::Div, self.colmn, self.line, self.index),
+            '*' => Token::new(TokenType::Mult, self.colmn, self.line, self.index),
+            '%' => Token::new(TokenType::Mod, self.colmn, self.line, self.index),
+            '\\' => Token::new(TokenType::LeftPan, self.colmn, self.line, self.index),
+            _ => Token::new(TokenType::NA(self.curr_char), self.colmn, self.line, self.index)
         }
     }
 
@@ -152,7 +152,7 @@ impl Lexer {
         for token in &self.tokens {
 
             if curr_line != token.line() && curr < self.tokens.len() {
-                let t = Token::new(TokenType::EOF, 0, 0);
+                let t = Token::new(TokenType::EOF, 0, 0, self.index);
                 let mut vec = self.tokens[start..curr].to_vec();
                 vec.push(t);
                 res.push(vec);
