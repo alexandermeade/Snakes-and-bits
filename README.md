@@ -1,7 +1,10 @@
 
+# Snakes and bits
+
 https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 
 
+# Code Guide
 
 
 | Symbol | Use Case                              |
@@ -39,7 +42,7 @@ https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 | `\`   | goes to the closest availble token to the left (can be used in place of a stepping stone without problems)                   |
 
 
-
+# Program Flags
 
 | flags  | Use Cases                              |
 |--------|---------------------------------------|
