@@ -38,3 +38,12 @@ https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 | `%`    |   mods the pointed value with on the stack the value to the right of i                        |
 | `\`   | goes to the closest availble token to the left (can be used in place of a stepping stone without problems)                   |
 
+
+
+
+| flags  | Use Cases                              |
+|--------|---------------------------------------|
+| `-nvisual` | hides the program visualizer |
+| `-nstack` | hides the stack visualizer |
+| `-nflags` | hides conditional flags visualizer|
+| `-plain` | hides all visualizer effects and uses plain output to display text (much faster than running it normally) |
