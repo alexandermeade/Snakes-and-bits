@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 colored = "2.1.0"
 crossterm = "0.28.1"
+ctrlc = "3.4.5"
+signal-hook = "0.3.17"
+tokio = "1.42.0"
+tokio-stream = "0.1.17"

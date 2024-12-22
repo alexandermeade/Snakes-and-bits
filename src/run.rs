@@ -5,16 +5,18 @@ use std::time::Duration;
 use colored::Colorize;
 use colored::ColoredString;
 use std::io::{stdout, Write};
-
+use std::env;
+use crossterm::event;
+use crate::run::event::Event;
 use crossterm::cursor;
 use crossterm::terminal;
 use crossterm::{
     execute,
-    terminal::{Clear, ClearType},
-    cursor::MoveTo,
     ExecutableCommand,
 };
+use std::process;
 use std::io;
+use ctrlc;
 //pub fn clear_screen() {
 /*    let mut out = stdout();
     out.queue(Hide).unwrap();
@@ -23,8 +25,7 @@ use std::io;
     out.flush().unwrap();
 */
 
-fn clear_terminal() {
-}
+
 fn clear_screen() {
     execute!(io::stdout(), terminal::Clear(terminal::ClearType::All), cursor::MoveTo(0, 0)).unwrap(); 
     io::stdout().flush().unwrap();
@@ -49,10 +50,36 @@ pub struct Executer {
     gteq_flag:bool,
     not_flag:bool,
     tick_count:i32,
-    output_height:u32
+    output_height:u32,
+    show_stack:bool,
+    show_visualizer:bool,
+    show_output:bool,
+    show_flags:bool,
+    steps: bool,
+    plain: bool,
+    handle_resize: bool
 }
 
 impl Executer {
+    
+    fn eval_args(&mut self) {
+        let args:Vec<String> = env::args().collect();
+        for arg in &args {
+            match arg as &str {
+                "-nvisual" => self.show_visualizer = false,
+                "-nstack" => self.show_stack = false,
+                "-noutput" => self.show_output = false,
+                "-nflags" => self.show_flags = false,
+                "-nstep" => self.steps = false,
+                "-plain" => {
+                    self.plain = true;
+                    self.steps = false;
+                    self.handle_resize = false
+                },
+                _ => {}
+            }
+        } 
+    }
 
     fn find_start(&mut self) {
         let mut j: usize = 0;
@@ -70,6 +97,12 @@ impl Executer {
     }
 
     pub fn start(board: Vec<Vec<Token>>, contents:String, output_height:u32) {
+
+        ctrlc::set_handler(move || {
+            clear_screen();
+            process::exit(0);
+        }).expect("error setting ctrl c handler");
+
         let mut exec = Executer {
             contents,
             board,
@@ -87,12 +120,23 @@ impl Executer {
             gteq_flag:false,
             not_flag:false,
             tick_count: 0,
-            output_height
+            output_height,
+            show_stack: true,
+            show_visualizer: true,
+            show_output: true,
+            show_flags: true,
+            steps: true,
+            plain: false,
+            handle_resize: true
         };
+        exec.eval_args();
         exec.find_start();
         clear_screen();
         exec.run();
-
+        
+        if exec.plain {
+            let _ = exec.outputs.into_iter().map(|s| println!("{}", s));
+        }
 
     }
 
@@ -151,7 +195,7 @@ impl Executer {
         self.index_line -= 1;
         let toks = self.board[self.index_line].clone();
         let mut index = 0;
-        let mut found = false;
+        //let mut found = false;
         for i in 0..toks.len() {
             if toks[i].colmn() == self.curr_token.colmn() && toks[i].line() != self.index_line.try_into().unwrap() {
                 index = i;
@@ -172,7 +216,7 @@ impl Executer {
         self.index_line += 1;
         let toks = self.board[self.index_line].clone();
         let mut index = 0;
-        let mut found = false;
+        //let mut found = false;
         for i in 0..toks.len() {
             if toks[i].colmn() == self.curr_token.colmn() && toks[i].line() != self.index_line.try_into().unwrap(){
                 index = i;
@@ -190,12 +234,32 @@ impl Executer {
     fn print_curr(&self) {
         //println!("exec > {:#?}", self.curr_token); 
     }
-
+    fn handle_output(&mut self, output:ColoredString) {
+        if self.plain {
+            println!("{}", output);
+            return;
+        }
+        self.outputs.push(output);
+        
+    }
     fn run(&mut self) {
-        while !self.stop_running {
 
-            self.fancy_file_pos_2();
-            thread::sleep(Duration::from_millis(25)); 
+        while !self.stop_running {
+            if self.handle_resize {
+                if event::poll(Duration::from_millis(25)).expect("unable to pull events") {
+                    if let Ok(Event::Resize(_, _)) = event::read() {
+                        clear_screen();
+                    }
+                }
+            }
+
+            if !self.plain {
+                self.fancy_file_pos_2();
+            }
+            
+            if self.steps {
+                thread::sleep(Duration::from_millis(25));
+            }
 
             match self.curr_token.token_type() {
                 TokenType::Start => {
@@ -203,7 +267,7 @@ impl Executer {
                     self.get_next();
                 },
                 TokenType::Str(string) => {
-                    self.outputs.push(format!("{} {}", "~".bold(), string.green()).green());
+                    self.handle_output(format!("{} {}", "~".bold(), string.green()).green());
                     self.get_next();
                 },
 
@@ -212,7 +276,7 @@ impl Executer {
                     let mut line = String::new();
                     println!("{}", "(Input)".black().bold().on_cyan());
                     let b1 = std::io::stdin().read_line(&mut line).unwrap();  
-                    self.outputs.push(format!("{}", line).yellow());
+                    self.handle_output(format!("{}", line).yellow());
                     match format!("{}", line).chars().nth(0) {
                         Some(c) => self.stack.push(c as i32),
                         None => self.print_err("no characters inputed")
@@ -223,10 +287,9 @@ impl Executer {
                 TokenType::NumInput => {
 
                     let mut line = String::new();
-                    let mut line = String::new();
                     println!("{}", "(Input)".black().bold().on_cyan());
                     let b1 = std::io::stdin().read_line(&mut line).unwrap();  
-                    self.outputs.push(format!("{}", line).normal());
+                    self.handle_output(format!("{}", line).normal());
                     println!("{}", line);
                     self.stack.push(line.trim().parse().expect("invalid input"));
 
@@ -263,7 +326,7 @@ impl Executer {
                     self.get_next();
                 },
                 TokenType::PrintCell => {
-                    self.outputs.push(self.stack[self.stack_index].to_string().normal());
+                    self.handle_output(self.stack[self.stack_index].to_string().normal());
                     self.get_next();
                 },
                 TokenType::RightShift => {
@@ -428,7 +491,6 @@ impl Executer {
                     self.get_next();
                 },
                 TokenType::Stop => {
-                    println!("exec > {}", "process ended successfully".green().bold());
                     return;
                 },
                 TokenType::EOF => {
@@ -478,32 +540,22 @@ impl Executer {
         // Move the cursor to the top of the terminal (row 1, column 1)
         print!("\x1B[H");  // ANSI escape code to move cursor to top-left corner
     
-        // Print content for this frame
-        println!("Frame {}: This is a new section.", self.tick_count);
+                          
     
         io::stdout().flush().unwrap();
     
-        // printing Flags
-        /*output.push_str(&format!("\n== [{}], != [{}], < [{}], > [{}], <= [{}], >= [{}], ! [{}]\n", 
-                Self::fancy_bool(self.eq_flag), 
-                Self::fancy_bool(self.neq_flag), 
-                Self::fancy_bool(self.lt_flag), 
-                Self::fancy_bool(self.gt_flag), 
-                Self::fancy_bool(self.lteq_flag), 
-                Self::fancy_bool(self.gteq_flag), 
-                Self::fancy_bool(self.not_flag)
-            )
-        );*/
-        print!("\n== [{}], != [{}], < [{}], > [{}], <= [{}], >= [{}], ! [{}]\n", 
-                Self::fancy_bool(self.eq_flag), 
-                Self::fancy_bool(self.neq_flag), 
-                Self::fancy_bool(self.lt_flag), 
-                Self::fancy_bool(self.gt_flag), 
-                Self::fancy_bool(self.lteq_flag), 
-                Self::fancy_bool(self.gteq_flag), 
-                Self::fancy_bool(self.not_flag)
+        if self.show_flags {
+            print!("\n== [{}], != [{}], < [{}], > [{}], <= [{}], >= [{}], ! [{}]\n", 
+                    Self::fancy_bool(self.eq_flag), 
+                    Self::fancy_bool(self.neq_flag), 
+                    Self::fancy_bool(self.lt_flag), 
+                    Self::fancy_bool(self.gt_flag), 
+                    Self::fancy_bool(self.lteq_flag), 
+                    Self::fancy_bool(self.gteq_flag), 
+                    Self::fancy_bool(self.not_flag)
             
-        );
+            );
+        }
 
         //printing stack 
         let stack_top = if self.stack_index as i32 - 10 < 0 {0} else {self.stack_index - 10};
@@ -521,218 +573,119 @@ impl Executer {
         }
   //      output.push_str(&format!("]\n"));
         */
-
-        print!("\n{}\n[{}", "(Stack)".black().bold().on_cyan(), if stack_top == 0 {""} else {"..., "});
-        for i in stack_top..stack_bottom {
-            if i == self.stack_index {
-                print!(" {},", self.stack[i].to_string().cyan().bold());
-                continue;
-            }
-            print!(" {},", self.stack[i].to_string());
-        }
-        print!("]\n");
-
-
-        //printing code body
-        while c != '\0' {
-            colmn += 1;
-            let res = match c { 
-                'S' => "S".green().bold(),
-                // stack related commands
-                '>' => ">".yellow().bold(),
-                '<' => "<".yellow().bold(),
-                ',' => ",".yellow().bold(),
-                //alphanumeric commands
-                'P' => "P".bold(),
-                'C' => "C".bold(),
-                'W' => "W".bold(),
-                '#' => "#".yellow().bold(),
-                '~' => "~".blue().bold(),
-                '@' => "@".red().bold(),
-                '+' => "+".yellow().bold(),
-                '-' => "-".yellow().bold(),
-                'i' => "i".yellow().bold(),
-                'd' => "d".yellow().bold(),
-                '0' => "0".blue().bold(),
-                ',' => ",".green().bold(),
-                ' ' => " ".normal(),
-
-                '\t' => {
-                    colmn += 4;
-                    "    ".normal()
-                },
-            
-                '\n' => {
-                    colmn = 1;
-                    line += 1;
-                    "\n".normal()
-                },
-                '"' => {
-                    let start = index;
-                    index += 1;
-                    for i in index..self.contents.len() {
-                        let ch = self.contents.chars().nth(i).unwrap();
-                        if ch == '"' {
-                            index = i;
-                            break; 
-                        }
-                    }
-                    index += 1;
-
-                    let inner = self.contents[start as usize..index as usize].to_string().green().bold();
-                    colmn += 1;
-                    index -=1;
-                    inner
-             
+        if self.show_stack {
+            print!("\n{}\n[{}", "(Stack)".black().bold().on_cyan(), if stack_top == 0 {""} else {"..., "});
+            for i in stack_top..stack_bottom {
+                if i == self.stack_index {
+                    print!(" {},", self.stack[i].to_string().cyan().bold());
+                    continue;
                 }
-                //computational
-                '?' => "?".blue().bold(),
-                '\0' => return,
-                _ => format!("{}", c).normal()
-            };  
-            if self.curr_token.index() == index { 
-                print!("{}", res.on_cyan());
-            }else {
-
-                print!("{}", res);
-                //output.push_str(&res);
+                print!(" {},", self.stack[i].to_string());
             }
-            index += 1;
-            match self.contents.chars().nth(index) {
-                Some(ch) => c=ch,
-                None => break
-            };
+            print!("]\n");
         }
-        //printing output
-        let max_out:usize = 30;
-        let top = if self.outputs.len() >= max_out  { 
+
+        if self.show_visualizer {
+            //printing code body
+            while c != '\0' {
+                colmn += 1;
+                let res = match c { 
+                    'S' => "S".green().bold(),
+                    // stack related commands
+                    '>' => ">".yellow().bold(),
+                    '<' => "<".yellow().bold(),
+                    ',' => ",".yellow().bold(),
+                    //alphanumeric commands
+                    'P' => "P".bold(),
+                    'C' => "C".bold(),
+                    'W' => "W".bold(),
+                    '#' => "#".yellow().bold(),
+                    '~' => "~".blue().bold(),
+                    '@' => "@".red().bold(),
+                    '+' => "+".yellow().bold(),
+                    '-' => "-".yellow().bold(),
+                    'i' => "i".yellow().bold(),
+                    'd' => "d".yellow().bold(),
+                    '0' => "0".blue().bold(),
+                    ' ' => " ".normal(),
+
+                    '\t' => {
+                        colmn += 4;
+                        "    ".normal()
+                    },
+            
+                    '\n' => {
+                        colmn = 1;
+                        line += 1;
+                        "\n".normal()
+                    },
+                    '"' => {
+                        let start = index;
+                        index += 1;
+                        for i in index..self.contents.len() {
+                            let ch = self.contents.chars().nth(i).unwrap();
+                            if ch == '"' {
+                                index = i;
+                                break; 
+                            }
+                        }
+                        index += 1;
+
+                        let inner = self.contents[start as usize..index as usize].to_string().green().bold();
+                        colmn += 1;
+                        index -=1;
+                        inner
+                 
+                    }
+                    //computational
+                    '?' => "?".blue().bold(),
+                    '\0' => return,
+                    _ => format!("{}", c).normal()
+                };  
+                if self.curr_token.index() == index { 
+                    print!("{}", res.on_cyan());
+                }else {
+
+                    print!("{}", res);
+                    //output.push_str(&res);
+                }
+                index += 1;
+                match self.contents.chars().nth(index) {
+                    Some(ch) => c=ch,
+                    None => break
+         
+                };
+            }
+        }
+
+        let (_, height) = terminal::size().expect("cannot get (width, height) of terminal using crossterm for some reason");
+        let (_, row) = cursor::position().expect("cannot get (col, row) of terminal cursor using crossterm for some reason");
+        let max_out:usize = if  ((height as i32-row as i32) - 2) < 0 {0} else {((height - row) - 2).into()};
+        let top = if self.outputs.len() >= max_out && max_out != 0 { 
             ((self.outputs.len()/max_out) * max_out) as usize
         } else {0};
 
-        if top % max_out == 0{
-            stdout().execute(terminal::Clear(terminal::ClearType::FromCursorDown));
-        }
-        print!("{}",
-            if top == 0 {
-                format!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan())
-            }else {
-                format!("{}{}\n(...{} additional outputs)", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan(), top.to_string().green().bold())
+        if  max_out != 0{
+            if top % max_out == 0 {
+                let _ = stdout().execute(terminal::Clear(terminal::ClearType::FromCursorDown));
             }
-        );
-
-        /*output.push_str(&
-            if top == 0 {
-                format!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan())
-            }else {
-
-                format!("{}{}\n(...{} additional outputs)", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan(), top.to_string().green().bold())
-            }
-        );*/
-        
-         
-        /*for out in top..self.outputs.len() {
-            output.push_str(&format!("\n{} {}", String::from("~").green().bold(), self.outputs[out]));
-        }*/
-        // Clear from the current cursor position down to the end of the line
-        for out in top..self.outputs.len() {
-            print!("\n{} {}", String::from("~").green().bold(), self.outputs[out]);
         }
-        print!("{}", output);
-    }
 
-    fn fancy_file_pos(&self) {
-        let mut index:usize = 0;
-        let mut c = self.contents.chars().nth(index).unwrap();
-        let mut prev_colmn = self.curr_token.colmn();
-        let mut prev_line = self.curr_token.line();
-        print!("\n[");
-        for i in 0..self.stack.len() {
-            if i == self.stack_index {
-                print!(" {},", self.stack[i].to_string().cyan().bold());
-                continue;
-            }
-            print!(" {},", self.stack[i].to_string());
-        }
-        print!("]\n");
-
-        for tokens in &self.board {
-            for token in tokens {
-                //making space
-                let colmn:i32 = if (token.colmn() as i32-prev_colmn as i32) < 0 {0} else {(token.colmn() as i32-prev_colmn as i32)}; 
-                let spaces = Self::populate_spaces(colmn.try_into().unwrap());
-
-                let res = match token.token_type() { 
-                    TokenType::Start => format!("{}", "S".green().bold()),
-                    // stack related commands
-                    TokenType::RightShift => format!("{}", ">".yellow().bold()),
-                    TokenType::LeftShift => format!("{}", "<".yellow().bold()),
-                    TokenType::Input => format!("{}", ",".yellow().bold()),
-                    TokenType::Zero => format!("{}", "0".blue().bold()),
-                     //alphanumeric commands
-                    //TokenType::Pop => format!("{}", "P".bold()),
-                    //'C' => format!("{}", "P".bold()),
-                    TokenType::Ladder => format!("{}", "#".yellow().bold()),
-                    TokenType::Snake => format!("{}", "~".blue().bold()),
-                    TokenType::Stop => format!("{}", "@".red().bold()),
-                    TokenType::Str(string) => format!("\"{}\"", string.green().bold()),
-                    TokenType::NewLine => String::from("\n"),
-                    TokenType::Step => String::from('.'),
-                    TokenType::Sub => format!("{}", "-".yellow().bold()),
-                    TokenType::Add => format!("{}", "+".yellow().bold()),
-                    TokenType::Inc => format!("{}", "i".yellow().bold()),
-                    TokenType::Dec => format!("{}", "d".yellow().bold()),
-                    TokenType::Front => format!("{}", "[".yellow().italic()),
-                    TokenType::Back => format!("{}", "]".yellow().italic()),
-                    TokenType::PrintCell => format!("{}", "$".yellow().italic()),
-                    TokenType::LeftPan => format!("{}", "\\".yellow().italic()),
-                    TokenType::EOF => String::from(""),
-//                    //computational
-//                '?' => format!("{}", "?".blue().bold()),
-//                '\0' => return,
-                   _ => format!("{}", "[:?]")
-                };
-
-/*                match token.token_type() {
-                    TokenType::Str(string) => {
-                        prev_colmn = token.colmn_end();
-                        prev_line = token.line_end();
-
-                    },
-                    _ => {
-                        prev_colmn = token.colmn();
-                        prev_line = token.line();
-
-                    }
-                } 
-  */
-                prev_colmn = token.colmn();
-                prev_line = token.line();
-
-                index += 1;
-                
-                if token.colmn() == self.curr_token.colmn() && token.line() == self.curr_token.line() {
-                    print!("{}", format!("{}{}", spaces, res.normal().black().on_cyan()));
-                    self.print_term();
+        if self.show_output {
+            print!("{}",
+                if top == 0 {
+                    format!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan())
                 }else {
-                    print!("{}", format!("{}{}", spaces, res));
+                    format!("{}{}\n(...{} additional outputs)", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan(), top.to_string().green().bold())
                 }
-                
-                match self.contents.chars().nth(index) {
-                    Some(ch) => c=ch,
-                    None => { 
-                        return;
-                    }
-                }
-
+            );
+            // Clear from the current cursor position down to the end of the line
+            for out in top..self.outputs.len() {
+                print!("\n{} {}", String::from("~").green().bold(), self.outputs[out]);
             }
-        }
-
-        println!("{}{}", String::from("Terminal Output").black().on_cyan(), String::from("\n").on_cyan());
-        let top = if self.outputs.len() > 25 {(25%2) * 25} else {0};
-        for output in top..self.outputs.len() {
-            println!("{} {}", String::from("~").green().bold(), output)
+            print!("{}", output);
         }
     }
- 
+
 }
 

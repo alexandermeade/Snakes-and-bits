@@ -29,7 +29,6 @@ pub enum TokenType {
     Back,
     PrintCell,
     LeftPan,
-    RightPan,
     Compare,
     LessThan,
     LessThanEqualTo,
@@ -49,8 +48,6 @@ pub struct Token {
     token_type: TokenType,
     colmn:u32,
     line:u32,
-    colmn_end:u32,
-    line_end:u32,
     index: usize
 }
 
@@ -60,8 +57,6 @@ impl Token {
             token_type,
             colmn,
             line,
-            colmn_end: 0,
-            line_end: 0,
             index,
         }
     }
@@ -90,18 +85,6 @@ impl Token {
         return self.index;
     }
 
-    pub fn line_end(&self) -> u32{
-        return self.line_end;
-    } 
-    
-    pub fn colmn_end(&self) -> u32{
-        return self.colmn_end;
-    } 
-    
-    pub fn set_ends(&mut self, colmn:u32, line:u32) {
-        self.line_end = line;
-        self.colmn_end = colmn;
-    }
 }
 
 
