@@ -1,0 +1,10 @@
+
+
+
+                                               . "they are the same" @
+S "input a number " _ "input another number" _?= 
+                                               . "they are not the same" @
+
+
+
+
