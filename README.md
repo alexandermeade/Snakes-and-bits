@@ -50,3 +50,7 @@ https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 | `-nstack` | hides the stack visualizer |
 | `-nflags` | hides conditional flags visualizer|
 | `-plain` | hides all visualizer effects and uses plain output to display text (much faster than running it normally) |
+
+
+# Notes
+The only version I have right now pre built is the windows version I am currently working on pre building the other versions. if you find any bugs please notify me. Thank you for reading!
