@@ -18,7 +18,6 @@ fn get_path() -> String {
 }
 
 fn main() {
-
     let path = get_path();
 
     let contents = fs::read_to_string(&path)

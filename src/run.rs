@@ -16,6 +16,7 @@ use crossterm::{
 };
 use std::process;
 use std::io;
+use rand::Rng;
 use ctrlc;
 //pub fn clear_screen() {
 /*    let mut out = stdout();
@@ -138,6 +139,11 @@ impl Executer {
             let _ = exec.outputs.into_iter().map(|s| println!("{}", s));
         }
 
+    }
+    
+    fn get_rand(bound:i32) -> i32 {
+        let mut rng = rand::thread_rng();
+        rng.gen_range(0..bound)
     }
 
     fn stack_get_next(&self) -> Option<i32> {
@@ -284,6 +290,27 @@ impl Executer {
 
                     self.get_next();
                 },
+                TokenType::RandomNum => {
+                    if self.stack.len() < 0 {
+                        self.print_err("cannot get random without an upperbound which is the pointed value on the stack with nothing in the stack");
+                        return;
+                    }
+                    let num = Self::get_rand(self.stack[self.stack_index]);
+                    self.stack.push(num);
+                    self.get_next();
+                    self.handle_output(num.to_string().into());
+                },
+                TokenType::PrintChar => {
+                    if self.stack.len() <= 0 {
+                        self.print_err("cannot print char with no pointed to value [nothing on the stack]");
+                        return;
+                    }
+                    let index:u32 = self.stack[self.stack_index] as u32;
+                    let res:String = char::from_u32(index).expect("couldn't convert tos tring").to_string();
+
+                    self.get_next();
+                    self.handle_output(res.into());
+                },
                 TokenType::NumInput => {
 
                     let mut line = String::new();
@@ -335,7 +362,7 @@ impl Executer {
                     self.get_next();
                 },
                 TokenType::LeftShift => {
-                    self.stack_index = if self.stack_index - 1 < 0 {self.stack.len() -1} else {(self.stack_index as i32 - 1).try_into().unwrap()};
+                    self.stack_index = if self.stack_index - 1 < 0 {if (self.stack.len() as i32- 1) < 0 {0} else {self.stack.len() - 1}} else {(self.stack_index as i32 - 1).try_into().unwrap()};
 
                     self.get_next();
                 },

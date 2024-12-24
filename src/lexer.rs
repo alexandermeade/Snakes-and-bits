@@ -77,9 +77,12 @@ impl Lexer {
             '"' => {
                 self.parse_str()
             },
+            
+            'r' => Token::new(TokenType::RandomNum, self.colmn, self.line, self.index),
+            '\'' => Token::new(TokenType::PrintChar, self.colmn, self.line, self.index),
             '@' => Token::new(TokenType::Stop, self.colmn, self.line, self.index),
-            '#' => Token::new(TokenType::Ladder, self.colmn, self.line, self.index),
             '~' => Token::new(TokenType::Snake, self.colmn, self.line, self.index),
+            '#' => Token::new(TokenType::Ladder, self.colmn, self.line, self.index),
             '<' => Token::new(TokenType::LeftShift, self.colmn, self.line, self.index),
             '>' => Token::new(TokenType::RightShift, self.colmn, self.line, self.index),
             '0' => Token::new(TokenType::Zero, self.colmn, self.line, self.index),

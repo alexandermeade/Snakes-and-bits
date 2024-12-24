@@ -28,6 +28,8 @@ pub enum TokenType {
     Front,
     Back,
     PrintCell,
+    PrintChar,
+    RandomNum,
     LeftPan,
     Compare,
     LessThan,
