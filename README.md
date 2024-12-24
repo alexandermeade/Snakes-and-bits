@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 | Symbol | Use Case                              |
 |--------|---------------------------------------|
 | `S`    |   marks the start of execution for your program and is chosen by the `S` closet to the top of the program                      |
-| `r`    |   gets a random number between zero and the value pointed at on the stack |
+| `r`    |   gets a random number between zero and the value pointed at on the stack and pushes it onto the stack|
 | `'`    |   prints the pointed values on the stack out as a character to the terminal | 
 | `"`    | `"` are how we denote strings and when you use a string it prints it out to the terminal         |
 | `@`    |   haults execution of the program and exits                       |
