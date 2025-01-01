@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/77789547-2074-4bd0-94d3-5e3ac3f61126
 | `d`    | subtracts one to the pointed value on the stack                        |
 | `[`    | moves the stack pointer to the front of the stack                      |
 | `]`    | moves the stack pointer to the back of the stack                       |
-| `.`    | used after a ladder or stair and is called the stepping stone for if you do not use this after coming off of a snake or a ladder it may have unforseen effects                       |
+| `.`    | used after a ladder or stair and is called the stepping stone for if you do not use this after coming off of a snake or a ladder it may have unforseen effects. can also be used as a right facing alternative to `\`                       |
 | `$`    | prints the pointed value on the stack to the termina              |
 | `,`    | takes in a single character input  from the user and pushes it onto the stack as a number                      |
 | `?`    | sets all of the flags according to the value pointed at on the stack and the value next to it                   |
